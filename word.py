@@ -4,7 +4,7 @@ from docx import Document
 import os
 
 
-excel_file = r'E:\Desktop\python\Word\data.xlsx'
+excel_file = r'E:\Desktop\python\Word\data.xlsx' # Your File Location
 template_file = r'E:\Desktop\python\Word\base.docx'
 destination_folder = r'E:\Desktop\python\Word\output'
 
