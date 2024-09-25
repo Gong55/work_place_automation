@@ -6,6 +6,10 @@ import pandas as pd
 import re
 from datetime import datetime
 import numpy as np
+from dateutil.relativedelta import relativedelta
+from pythainlp.util import bahttext
+from num2words import num2words
+
 
 base_path = r'E:\Desktop\python\Word'
 excel_file = os.path.join(base_path, 'data_input.xlsx')
@@ -16,30 +20,74 @@ owner_contract = os.path.join(base_path, 'owner_contract.docx')
 df = pd.read_excel(excel_file)
 df_flipped = df.set_index('Attributes').transpose()
 
+thai_month_names = {
+    1: 'มกราคม',
+    2: 'กุมภาพันธ์',
+    3: 'มีนาคม',
+    4: 'เมษายน',
+    5: 'พฤษภาคม',
+    6: 'มิถุนายน',
+    7: 'กรกฎาคม',
+    8: 'สิงหาคม',
+    9: 'กันยายน',
+    10: 'ตุลาคม',
+    11: 'พฤศจิกายน',
+    12: 'ธันวาคม'
+}
 
-def month_number_to_name(month):
-    months = ["January", "February", "March", "April", "May", "June",
-              "July", "August", "September", "October", "November", "December"]
 
-    return months[month - 1]
+def number_to_text_en(df, column):
+    df[column +
+        '_text_en'] = df[column].apply(lambda x: num2words(x) + ' baht only')
 
 
-def convert_date_format(column):
-    if df_flipped[column].notna().all():
-        df_flipped[column] = df_flipped[column].replace(' ', np.nan)
-        df_flipped[column] = pd.to_datetime(
-            df_flipped[column], errors='coerce')
-        df_flipped[f'{column}_day'] = df_flipped[column].dt.day
-        df_flipped[f'{column}_month'] = df_flipped[column].dt.month
-        df_flipped[f'{column}_year'] = df_flipped[column].dt.year
-        df_flipped[f'{column}_month_en'] = df_flipped[f'{column}_month'].apply(
-            month_number_to_name)
+def calculate_two_months_deposit(df, column):
+    df[column + '_times_two'] = df[column].apply(lambda x: x * 2)
+
+
+def number_to_text_th(df, column):
+    df[column + '_text_th'] = df[column].apply(bahttext)
+
+
+def lease_period(start_date, end_date, df):
+
+    delta_list = []
+    for start, end in zip(df[start_date], df[end_date]):
+        start = start + pd.DateOffset(days=1)
+        delta = relativedelta(end, start)
+        delta_list.append((delta.days, delta.months, delta.years))
+
+    return delta_list
+
+
+def late_payment_grace_period(start_date, df):
+
+    answer = []
+
+    for start in df[start_date]:
+        output = start + relativedelta(days=4)
+        answer.append(output.days, output.months, output.years)
+    return answer
+
+
+def convert_date_format(column, df):
+    df[column] = df[column].replace(' ', np.nan)
+    df[column] = pd.to_datetime(
+        df[column], errors='coerce')
+    if df[column].notna().all():
+        df[f'{column}_day'] = df[column].dt.day
+        df[f'{column}_month'] = df[column].dt.month
+        df[f'{column}_year'] = df[column].dt.year
+        df[f'{column}_month_en'] = df[column].dt.month_name()
+        df[f'{column}_month_th'] = df[f'{column}_month'].map(
+            thai_month_names)
+        df[column + '_year_th'] = df[column + '_year'].apply(lambda x: x + 543)
     else:
         pass
 
 
-convert_date_format("owner_passport_expire_date")
-convert_date_format("owner_passport_expire_date_2")
+convert_date_format("start_date", df_flipped)
+convert_date_format("end_date", df_flipped)
 
 
 def format_room(room):
@@ -92,7 +140,7 @@ def replace_text_in_tables(table, old_text, new_text):
 #         footer = section.footer
 #         for footer_text in footer.paragraphs:
 #             replace_text_with_format(
-#                 footer_text, "-owner_name-", str(row['owner_name']))
+#                 footer_text, "owner_name", str(row['owner_name']))
 #             replace_text_with_format(
 #                 footer_text, "owner_name_2", str(row['owner_name_2']))
 #             replace_text_with_format(
