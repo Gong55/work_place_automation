@@ -82,6 +82,8 @@ def convert_date_format(column, df):
         df[f'{column}_month_th'] = df[f'{column}_month'].map(
             thai_month_names)
         df[column + '_year_th'] = df[column + '_year'].apply(lambda x: x + 543)
+        df[column + '_en'] = df[column + '_day'].astype(str) + ' ' + df[column + '_month_en'] + ' ' + df[column + '_year'].astype(str)
+        df[column + '_th'] = df[column + '_day'].astype(str) + ' ' + df[column + '_month_th'] + ' ' + df[column + '_year'].astype(str)
     else:
         pass
 
@@ -194,6 +196,41 @@ for index1, row1 in df_flipped.iterrows():
         destination_folder, f"代租管合約 {row1['project_name']} {formatted_room}.docx")
     doc.save(new_file_name)
     print(f"'output_{formatted_room}.docx' created successfully")
+
+
+
+paragraph_placeholder_dictionary = {
+    'Startdateenplahor': 'start_date_en',
+    'Startdatethplahor': 'start_date_th',
+    'OWNERNAMEPLAHOR': 'owner_name',
+    'OWNERPASSPORTPLAHOR': 'owner_passport',
+    'Ownernationalityplahor': 'owner_nationality',
+    'Ownerpassportexpiredateplahor': 'owner_passport_expire_date_en',
+    'Projectnameplahor': 'project_name',
+    'Roomnumberplahor': 'room_number'
+}
+
+footer_placeholder_dictionary = {
+    'OWNERNAMEPLAHOR': 'owner_name'
+    
+}
+
+    
+for index2, row2 in df_flipped.iterrows():
+    doc2 = Document(lease_agreement)
+
+
+    for paragraph in doc2.paragraphs:
+        for placeholder, column_name in paragraph_placeholder_dictionary.items():
+        
+            value = str(row2[column_name]) if pd.notna(row2[column_name]) else ''
+            replace_text_with_format(paragraph, placeholder, value)  
+                
+        
+    for section in doc.sections:
+        footer = section.footer
+        for footer_text in footer.paragraphs:
+            
 
     # for index, row in df_flipped.iterrows():
     #     doc = Document(template_file)
